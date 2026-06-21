@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday! | The Pitch</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0b0c10;
+            color: #fff;
+        }
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        /* Startup Quiz Overlay */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(11, 12, 16, 0.95);
+            transition: opacity 1s ease;
+        }
+        .card {
+            background: #1f2833;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px 0 rgba(0, 224, 212, 0.2);
+            border: 1px solid #45f3ff;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        h2 {
+            margin-bottom: 20px;
+            color: #45f3ff;
+            font-size: 1.5rem;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #45f3ff;
+            background: #0b0c10;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+        }
+        button {
+            background: #45f3ff;
+            color: #0b0c10;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #00e0d4;
+            box-shadow: 0 0 15px #45f3ff;
+        }
+        /* Birthday Long Text Overlay */
+        #wish-container {
+            position: absolute;
+            bottom: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 5;
+            width: 80%;
+            max-width: 800px;
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 2s ease;
+        }
+        .scroll-text {
+            font-size: 1.8rem;
+            line-height: 1.6;
+            color: #ffffff;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+            font-weight: 600;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div id="quiz-overlay" class="overlay">
+        <div class="card" id="question-card">
+            <h2 id="question-text">Loading Pitch Deck...</h2>
+            <div class="input-group" id="input-container">
+                </div>
+            <button id="next-btn" onclick="nextQuestion()">Submit Answer</button>
+        </div>
+    </div>
+
+    <div id="wish-container">
+        <p class="scroll-text" id="wish-text"></p>
+    </div>
+
+    <script>
+        // --- Startup Questions Data ---
+        const questions = [
+            {
+                q: "Before we unlock your funding, what is your primary Q4 personal growth KPI?",
+                type: "select",
+                options: ["Scaling happiness by 200%", "Disrupting the aging process", "Automating cake consumption"]
+            },
+            {
+                q: "What is your core competitive advantage moving into this new year of life?",
+                type: "input",
+                placeholder: "e.g., Extreme wisdom, better coffee habits..."
+            },
+            {
+                q: "Final round: Are you ready to accept a lifetime investment of joy, health, and success?",
+                type: "select",
+                options: ["Yes, sign the term sheet!", "Absolutely, let's IPO!"]
+            }
+        ];
+
+        let currentQuestionIdx = 0;
+
+        function loadQuestion() {
+            const qData = questions[currentQuestionIdx];
+            document.getElementById('question-text').innerText = qData.q;
+            const container = document.getElementById('input-container');
+            container.innerHTML = '';
+
+            if (qData.type === 'select') {
+                const select = document.createElement('select');
+                select.id = 'quiz-input';
+                qData.options.forEach(opt => {
+                    const o = document.createElement('option');
+                    o.value = opt;
+                    o.innerText = opt;
+                    select.appendChild(o);
+                });
+                container.appendChild(select);
+            } else {
+                const input = document.createElement('input');
+                input.id = 'quiz-input';
+                input.type = 'text';
+                input.placeholder = qData.placeholder;
+                container.appendChild(input);
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIdx++;
+            if (currentQuestionIdx < questions.length) {
+                loadQuestion();
+            } else {
+                // End of quiz - transition to 3D Wish Video
+                document.getElementById('quiz-overlay').style.opacity = 0;
+                setTimeout(() => {
+                    document.getElementById('quiz-overlay').classList.add('hidden');
+                    startBirthdayReveal();
+                }, 1000);
+            }
+        }
+
+        // --- Long Birthday Text Configuration ---
+        const longWishParagraphs = [
+            "Happy Birthday! 🎉",
+            "As you launch into this brand-new fiscal year of life, may your happiness scale exponentially and your bugs minimize to zero.",
+            "You are the ultimate founder of your own destiny, and looking at your track record, your growth metrics are absolutely phenomenal.",
+            "May this year bring you highly profitable moments of joy, a massive runway of good health, and an endless series of successful breakthroughs.",
+            "Keep disrupting, keep inspiring, and remember to always celebrate your wins. Cheers to your best year yet! 🚀🥂"
+        ];
+
+        let textIdx = 0;
+        function startBirthdayReveal() {
+            const wishContainer = document.getElementById('wish-container');
+            const wishText = document.getElementById('wish-text');
+            wishContainer.style.opacity = 1;
+
+            function cycleText() {
+                if(textIdx < longWishParagraphs.length) {
+                    wishText.style.opacity = 0;
+                    setTimeout(() => {
+                        wishText.innerText = longWishParagraphs[textIdx];
+                        wishText.style.opacity = 1;
+                        textIdx++;
+                    }, 500);
+                    setTimeout(cycleText, 4500); // Change text every 4.5 seconds
+                }
+            }
+            cycleText();
+            // Speed up 3D rotation when the reveal happens
+            rotationSpeed = 0.02;
+        }
+
+        // Initialize first question
+        loadQuestion();
+
+
+        // --- Three.js 3D Engine Setup ---
+        let scene, camera, renderer, cakeGroup, particles;
+        let rotationSpeed = 0.005;
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            
+            // Scene & Camera
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x0b0c10, 0.015);
+            
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 12);
+            camera.lookAt(0, 2, 0);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0x45f3ff, 1);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
+
+            const pointLight = new THREE.PointLight(0xff007f, 1, 20);
+            pointLight.position.set(-5, 3, -5);
+            scene.add(pointLight);
+
+            // Build 3D Cake Group
+            cakeGroup = new THREE.Group();
+
+            // Cake Base Layer
+            const baseGeo = new THREE.CylinderGeometry(3, 3, 1.5, 32);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x1f2833, roughness: 0.3, metalness: 0.2 });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.y = 0.75;
+            cakeGroup.add(base);
+
+            // Cake Top Layer
+            const topGeo = new THREE.CylinderGeometry(2, 2, 1.2, 32);
+            const topMat = new THREE.MeshStandardMaterial({ color: 0xff007f, roughness: 0.4 });
+            const topLayer = new THREE.Mesh(topGeo, topMat);
+            topLayer.position.y = 2.1;
+            cakeGroup.add(topLayer);
+
+            // Candle
+            const candleGeo = new THREE.CylinderGeometry(0.1, 0.1, 1, 16);
+            const candleMat = new THREE.MeshStandardMaterial({ color: 0x45f3ff });
+            const candle = new THREE.Mesh(candleGeo, candleMat);
+            candle.position.y = 3.2;
+            cakeGroup.add(candle);
+
+            // Candle Flame (Using a small glowing cone)
+            const flameGeo = new THREE.ConeGeometry(0.15, 0.4, 16);
+            const flameMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+            const flame = new THREE.Mesh(flameGeo, flameMat);
+            flame.position.y = 3.9;
+            cakeGroup.add(flame);
+
+            scene.add(cakeGroup);
+
+            // Particle System (Festive floating dust)
+            const particleGeo = new THREE.BufferGeometry();
+            const particleCount = 500;
+            const posArray = new Float32Array(particleCount * 3);
+
+            for(let i=0; i < particleCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 25;
+            }
+
+            particleGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            const particleMat = new THREE.PointsMaterial({
+                size: 0.08,
+                color: 0x45f3ff,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            particles = new THREE.Points(particleGeo, particleMat);
+            scene.add(particles);
+
+            // Resize handler
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Slowly spin the cake
+            if (cakeGroup) {
+                cakeGroup.rotation.y += rotationSpeed;
+            }
+
+            // Animate particles subtly
+            if (particles) {
+                particles.rotation.y += 0.001;
+                particles.rotation.x += 0.0005;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Run Engine
+        init3D();
+        animate();
+    </script>
+</body>
+</html>
